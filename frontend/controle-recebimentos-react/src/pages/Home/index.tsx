@@ -1,6 +1,8 @@
 import "./style.css";
 import Trash from "../../assets/icons8-trash-25.svg";
 import { useState } from "react";
+import { Link } from 'react-router-dom';
+
 
 import api from '../../services/api';
 
@@ -98,6 +100,7 @@ function Home() {
             <option value="DIR">Diretor</option>
             <option value="GES">Gestor</option>
           </select>
+          <p className="logar">Já tem uma conta? <Link to="/login">Faça login</Link></p>
 
           <button type="submit">Cadastrar</button>
         </form>
