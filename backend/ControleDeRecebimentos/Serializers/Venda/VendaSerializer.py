@@ -9,11 +9,18 @@ class VendaSerializer(serializers.ModelSerializer):
             "id",
             "cliente",
             "empreendimento",
-            "valor_venda",
             "data_venda",
             "mes_referencia",
-            "forma_pagamento",
             "status",
             "created_at",
+            # Campos opcionais
+            "valor_venda",
+            "forma_pagamento",
+            "corretor",
+            "imobiliaria",
+            "unidade",
+            "etapa",
+            "fgts",
+            "observacoes",
         ]
         read_only_fields = ["id", "created_at"]

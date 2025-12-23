@@ -24,6 +24,7 @@ from ControleDeRecebimentos.views.user_views import RegisterAPIView
 from ControleDeRecebimentos.views.empreendimento_views import EmpreendimentoAPIView
 from ControleDeRecebimentos.views.cliente_views import ClienteAPIView
 from ControleDeRecebimentos.views.venda_views import VendaAPIView
+from ControleDeRecebimentos.views.import_views import ImportAcompanhamentoAPIView
 
 
 urlpatterns = [
@@ -34,4 +35,9 @@ urlpatterns = [
     path("empreendimentos/", EmpreendimentoAPIView.as_view(), name="empreendimentos"),
     path("clientes/", ClienteAPIView.as_view(), name="clientes"),
     path("vendas/", VendaAPIView.as_view(), name="vendas"),
+    path(
+        "import/acompanhamento/",
+        ImportAcompanhamentoAPIView.as_view(),
+        name="import_acompanhamento",
+    ),
 ]
