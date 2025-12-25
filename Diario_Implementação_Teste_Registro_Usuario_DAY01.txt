@@ -1,0 +1,12 @@
+Corrigi a configuração das pastas e aprendi que os diretorios que são esperados pelo django precisam ter um arquivo __init__.py neles
+
+Entendi que os serializers verificar os dados recebidos pela requisicao com base no model e podem executar tarefas a partir disso se validados. 
+
+Perguntas: 
+Por que o teste estava falhando? (campos faltando no payload)
+1. O teste não estava funcionando pois eu não estavá passando todos os campos que o serializer exigia. 
+O que você mudou para fazer passar? (adicionou username, first_name, last_name, user_type)
+2. Acrecentei os campos necessarios e o teste começou a passar.
+3. Por que o teste agora verifica assertNotIn('password')? 
+(segurança para garantir que a senha não sera retornada para o usuário)
+

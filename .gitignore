@@ -1,2 +1,65 @@
+# ===================================
+# Python / Django (Backend)
+# ===================================
+
+# Virtual Environment
+venv/
+env/
+ENV/
+.venv/
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+*.egg
+*.egg-info/
+dist/
+build/
+
+# Django
+*.log
+db.sqlite3
+db.sqlite3-journal
+media/
+staticfiles/
+
+# Environment variables
+.env
+.env.local
+
+# ===================================
+# Node / React (Frontend)
+# ===================================
+
+# Dependencies
+node_modules/
+/.pnp
+.pnp.js
+
+# Production
+/build
+/dist
+
+# Testing
+/coverage
+
+# Misc
+.DS_Store
+*.swp
+*.swo
+*~
+
+# IDE / Editor
+.vscode/
+.idea/
+*.sublime-project
+*.sublime-workspace
+
+# Logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
 node_modules/
 .env
