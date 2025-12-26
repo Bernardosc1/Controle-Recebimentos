@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { TrendingUp, ArrowRight, Loader2 } from "lucide-react";
-import api from "../../services/api";
+import { auth } from "../../services/api";
 
 function Login() {
   const navigate = useNavigate();
@@ -16,18 +16,11 @@ function Login() {
     setLoading(true);
 
     try {
-      const response = await api.post("/token/", {
-        email: email,
-        password: password,
-      });
-
-      localStorage.setItem("access_token", response.data.access);
-      localStorage.setItem("refresh_token", response.data.refresh);
-
+      await auth.signIn(email, password);
       navigate("/dashboard");
-    } catch (error) {
+    } catch (error: any) {
       console.error("Erro ao fazer login: ", error);
-      setError("E-mail ou senha incorretos. Tente novamente.");
+      setError(error.message || "E-mail ou senha incorretos. Tente novamente.");
     } finally {
       setLoading(false);
     }

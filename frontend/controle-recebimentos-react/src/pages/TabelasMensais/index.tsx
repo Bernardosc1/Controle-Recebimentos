@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import api from "../../services/api";
+import { db } from "../../services/api";
 import { Button } from "../../components/ui/button";
 import {
   Card,
@@ -18,7 +18,7 @@ import {
 } from "lucide-react";
 
 interface TabelaMensal {
-  id: number;
+  id: string;
   mes_referencia: string;
   created_at: string;
 }
@@ -37,8 +37,8 @@ export default function TabelasMensais() {
   async function carregarTabelas() {
     try {
       setLoading(true);
-      const response = await api.get("/tabelas-mensais/");
-      setTabelas(response.data);
+      const data = await db.tabelasMensais.list();
+      setTabelas(data || []);
       setErro("");
     } catch (error) {
       setErro("Erro ao carregar tabelas");
@@ -58,27 +58,27 @@ export default function TabelasMensais() {
 
     try {
       setCriando(true);
-      await api.post("/tabelas-mensais/", { mes_referencia: novoMes });
+      await db.tabelasMensais.create(novoMes);
       setNovoMes("");
       carregarTabelas();
       setErro("");
     } catch (error: any) {
-      setErro(error.response?.data?.error || "Erro ao criar tabela");
+      setErro(error.message || "Erro ao criar tabela");
     } finally {
       setCriando(false);
     }
   }
 
-  async function excluirTabela(id: number) {
+  async function excluirTabela(id: string) {
     if (!confirm("Tem certeza que deseja excluir esta tabela?")) {
       return;
     }
 
     try {
-      await api.delete(`/tabelas-mensais/${id}/`);
+      await db.tabelasMensais.delete(id);
       carregarTabelas();
     } catch (error: any) {
-      setErro(error.response?.data?.error || "Erro ao excluir tabela");
+      setErro(error.message || "Erro ao excluir tabela");
     }
   }
 

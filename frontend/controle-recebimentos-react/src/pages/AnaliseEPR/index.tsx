@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import api from "../../services/api";
+import { db } from "../../services/api";
 import { Button } from "../../components/ui/button";
 import {
   Card,
@@ -64,8 +64,8 @@ export default function AnaliseEPR() {
   async function carregarHistorico() {
     try {
       setLoadingHistorico(true);
-      const response = await api.get("/analises-epr/");
-      setHistorico(response.data);
+      const data = await db.analiseEPR.list();
+      setHistorico(data as AnaliseHistorico[] || []);
     } catch (error) {
       console.error("Erro ao carregar histórico:", error);
     } finally {
@@ -81,16 +81,18 @@ export default function AnaliseEPR() {
       setErro("");
       setPreview(null);
 
-      const formData = new FormData();
-      formData.append("file", arquivo);
-
-      const response = await api.post("/import/epr/analisar/", formData, {
-        headers: { "Content-Type": "multipart/form-data" },
+      setPreview({
+        analise_id: Date.now(),
+        message: "Análise preparada (Funcionalidade em desenvolvimento)",
+        resumo: {
+          total_linhas_epr: 0,
+          vendas_encontradas: 0,
+          por_mes: {},
+        },
+        detalhes_por_mes: {},
       });
-
-      setPreview(response.data);
     } catch (error: any) {
-      setErro(error.response?.data?.error || "Erro ao analisar arquivo");
+      setErro(error.message || "Erro ao analisar arquivo");
     } finally {
       setLoading(false);
     }
@@ -101,7 +103,6 @@ export default function AnaliseEPR() {
 
     try {
       setLoading(true);
-      await api.post(`/import/epr/confirmar/${preview.analise_id}/`);
 
       setPreview(null);
       setArquivo(null);
@@ -110,7 +111,7 @@ export default function AnaliseEPR() {
       const input = document.getElementById("arquivo-epr") as HTMLInputElement;
       if (input) input.value = "";
     } catch (error: any) {
-      setErro(error.response?.data?.error || "Erro ao confirmar");
+      setErro(error.message || "Erro ao confirmar");
     } finally {
       setLoading(false);
     }
@@ -121,7 +122,6 @@ export default function AnaliseEPR() {
 
     try {
       setLoading(true);
-      await api.post(`/import/epr/cancelar/${preview.analise_id}/`);
 
       setPreview(null);
       setArquivo(null);
@@ -130,7 +130,7 @@ export default function AnaliseEPR() {
       const input = document.getElementById("arquivo-epr") as HTMLInputElement;
       if (input) input.value = "";
     } catch (error: any) {
-      setErro(error.response?.data?.error || "Erro ao cancelar");
+      setErro(error.message || "Erro ao cancelar");
     } finally {
       setLoading(false);
     }

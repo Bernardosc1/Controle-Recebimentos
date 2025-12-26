@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import api from "../../services/api";
+import { db } from "../../services/api";
 import { Button } from "../../components/ui/button";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "../../components/ui/card";
 import {
@@ -54,8 +54,9 @@ export default function AnaliseEPRDetalhes() {
   async function carregarAnalise() {
     try {
       setLoading(true);
-      const response = await api.get(`/analises-epr/${id}/`);
-      setAnalise(response.data);
+      if (!id) throw new Error("ID não informado");
+      const data = await db.analiseEPR.getById(id);
+      setAnalise(data as AnaliseDetalhes | null);
       setErro("");
     } catch (error) {
       setErro("Erro ao carregar detalhes da análise");
@@ -94,18 +95,7 @@ export default function AnaliseEPRDetalhes() {
   async function handleDownload(mes: string) {
     setDownloadingMes(mes);
     try {
-      const response = await api.get(`/export/analise-epr/${id}/?mes=${mes}`, {
-        responseType: "blob",
-      });
-
-      const url = window.URL.createObjectURL(new Blob([response.data]));
-      const link = document.createElement("a");
-      link.href = url;
-      link.setAttribute("download", `${mes.replace("-", ".")} - Planilha Recebimentos.xlsx`);
-      document.body.appendChild(link);
-      link.click();
-      link.remove();
-      window.URL.revokeObjectURL(url);
+      alert(`Download preparado para ${formatarMes(mes)} (Funcionalidade em desenvolvimento)`);
     } catch (error) {
       console.error("Erro ao baixar planilha:", error);
       setErro("Erro ao baixar planilha");

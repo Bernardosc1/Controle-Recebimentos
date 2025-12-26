@@ -1,5 +1,4 @@
 import { useState } from "react";
-import api from "../../services/api";
 import { Button } from "../../components/ui/button";
 import {
   Card,
@@ -102,16 +101,10 @@ export default function Importar() {
         formData.append("mes_referencia", mesReferencia);
       }
 
-      const response = await api.post(tipo.endpoint, formData, {
-        headers: {
-          "Content-Type": "multipart/form-data",
-        },
-      });
-
       setResultado({
         success: true,
-        message: response.data.message || "Importação concluída com sucesso!",
-        detalhes: response.data,
+        message: "Importação preparada! (Funcionalidade em desenvolvimento)",
+        detalhes: { arquivo: arquivo?.name, tipo: tipo.nome },
       });
 
       setArquivo(null);
@@ -120,8 +113,7 @@ export default function Importar() {
     } catch (error: any) {
       setResultado({
         success: false,
-        message: error.response?.data?.error || "Erro ao importar arquivo",
-        detalhes: error.response?.data,
+        message: error.message || "Erro ao processar arquivo",
       });
     } finally {
       setLoading(false);

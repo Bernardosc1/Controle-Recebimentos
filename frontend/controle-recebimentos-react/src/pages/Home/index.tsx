@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { TrendingUp, ArrowRight, Loader2 } from "lucide-react";
-import api from "../../services/api";
+import { auth } from "../../services/api";
 
 function Home() {
   const navigate = useNavigate();
@@ -10,7 +10,6 @@ function Home() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
-  const [userType, setUserType] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
@@ -23,27 +22,14 @@ function Home() {
       return;
     }
 
-    if (!userType) {
-      setError("Selecione o tipo de usuário");
-      return;
-    }
-
     setLoading(true);
 
-    const userData = {
-      first_name: firstName,
-      last_name: lastName,
-      email: email,
-      password: password,
-      user_type: userType,
-    };
-
     try {
-      await api.post("/register/", userData);
+      await auth.signUp(email, password, firstName, lastName);
       navigate("/login");
     } catch (error: any) {
       console.error("Erro ao cadastrar usuário: ", error);
-      setError(error.response?.data?.error || "Erro ao cadastrar usuário. Verifique os dados!");
+      setError(error.message || "Erro ao cadastrar usuário. Verifique os dados!");
     } finally {
       setLoading(false);
     }
@@ -168,29 +154,6 @@ function Home() {
                     className="w-full px-4 py-3.5 text-base bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
                     required
                   />
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-slate-700 mb-2">
-                  Tipo de usuário
-                </label>
-                <div className="relative">
-                  <select
-                    value={userType}
-                    onChange={(e) => setUserType(e.target.value)}
-                    className="w-full px-4 py-3.5 text-base bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all appearance-none cursor-pointer"
-                    required
-                  >
-                    <option value="">Selecione...</option>
-                    <option value="DIR">Diretor</option>
-                    <option value="GES">Gestor</option>
-                  </select>
-                  <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none">
-                    <svg className="w-5 h-5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                    </svg>
-                  </div>
                 </div>
               </div>
 

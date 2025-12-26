@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import api from "../../services/api";
+import { db } from "../../services/api";
 import {
   Card,
   CardHeader,
@@ -22,9 +22,6 @@ import {
   Loader2,
 } from "lucide-react";
 
-/**
- * Interface para os dados do Dashboard
- */
 interface DashboardData {
   total_vendas: number;
   vendas_pendentes: number;
@@ -37,12 +34,19 @@ interface DashboardData {
   vendas_financiadas: number;
 }
 
-/**
- * Dashboard - Página inicial após login
- */
 export default function Dashboard() {
   const navigate = useNavigate();
-  const [dados, setDados] = useState<DashboardData | null>(null);
+  const [dados, setDados] = useState<DashboardData>({
+    total_vendas: 0,
+    vendas_pendentes: 0,
+    vendas_faturadas: 0,
+    total_valor_vendas: 0,
+    total_comissao: 0,
+    comissao_pendente: 0,
+    comissao_faturada: 0,
+    vendas_a_vista: 0,
+    vendas_financiadas: 0,
+  });
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -51,8 +55,45 @@ export default function Dashboard() {
 
   async function carregarDados() {
     try {
-      const response = await api.get("/dashboard/");
-      setDados(response.data);
+      const vendas = await db.vendas.list();
+
+      let totalVendas = 0;
+      let vendasPendentes = 0;
+      let vendasFaturadas = 0;
+      let totalValor = 0;
+      let totalComissao = 0;
+      let comissaoPendente = 0;
+      let comissaoFaturada = 0;
+      let vendasAVista = 0;
+      let vendasFinanciadas = 0;
+
+      if (vendas) {
+        totalVendas = vendas.length;
+        vendas.forEach((venda: any) => {
+          if (venda.status === 'PE') vendasPendentes++;
+          if (venda.status === 'FA') vendasFaturadas++;
+          if (venda.valor_venda) totalValor += venda.valor_venda;
+          if (venda.valor_comissao) {
+            totalComissao += venda.valor_comissao;
+            if (venda.status === 'PE') comissaoPendente += venda.valor_comissao;
+            if (venda.status === 'FA') comissaoFaturada += venda.valor_comissao;
+          }
+          if (venda.forma_pagamento === 'AV') vendasAVista++;
+          if (venda.forma_pagamento === 'FI') vendasFinanciadas++;
+        });
+      }
+
+      setDados({
+        total_vendas: totalVendas,
+        vendas_pendentes: vendasPendentes,
+        vendas_faturadas: vendasFaturadas,
+        total_valor_vendas: totalValor,
+        total_comissao: totalComissao,
+        comissao_pendente: comissaoPendente,
+        comissao_faturada: comissaoFaturada,
+        vendas_a_vista: vendasAVista,
+        vendas_financiadas: vendasFinanciadas,
+      });
     } catch (error) {
       console.error("Erro ao carregar dashboard:", error);
     } finally {

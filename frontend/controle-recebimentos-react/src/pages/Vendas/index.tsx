@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import api from "../../services/api";
+import { db } from "../../services/api";
 import { Button } from "../../components/ui/button";
 import {
   Card,
@@ -16,22 +16,20 @@ import {
 } from "lucide-react";
 
 interface TabelaMensal {
-  id: number;
+  id: string;
   mes_referencia: string;
 }
 
 interface Venda {
-  id: number;
-  cliente_nome: string;
-  empreendimento_nome: string;
+  id: string;
+  clientes: { nome: string };
+  empreendimentos: { nome: string };
   unidade: string;
   forma_pagamento: string;
-  forma_pagamento_display: string;
   status: string;
-  status_display: string;
   valor_venda: number | null;
   valor_comissao: number | null;
-  tabela_mensal: number | null;
+  tabela_mensal_id: string | null;
 }
 
 export default function Vendas() {
@@ -54,8 +52,8 @@ export default function Vendas() {
 
   async function carregarTabelas() {
     try {
-      const response = await api.get("/tabelas-mensais/");
-      setTabelas(response.data);
+      const data = await db.tabelasMensais.list();
+      setTabelas(data || []);
     } catch (error) {
       console.error("Erro ao carregar tabelas:", error);
     }
@@ -64,23 +62,12 @@ export default function Vendas() {
   async function carregarVendas() {
     try {
       setLoading(true);
+      const filters = {};
+      if (filtroTabela) Object.assign(filters, { tabelaMensalId: filtroTabela });
+      if (filtroStatus) Object.assign(filters, { status: filtroStatus });
 
-      let url = "/vendas/";
-      const params = new URLSearchParams();
-
-      if (filtroTabela) {
-        params.append("tabela_mensal", filtroTabela);
-      }
-      if (filtroStatus) {
-        params.append("status", filtroStatus);
-      }
-
-      if (params.toString()) {
-        url += `?${params.toString()}`;
-      }
-
-      const response = await api.get(url);
-      setVendas(response.data);
+      const data = await db.vendas.list(filters);
+      setVendas(data || []);
       setErro("");
     } catch (error) {
       setErro("Erro ao carregar vendas");
@@ -251,19 +238,19 @@ export default function Vendas() {
                     <tr key={venda.id} className="hover:bg-slate-50 transition-colors">
                       <td className="py-4 px-4">
                         <span className="font-medium text-slate-700 truncate block max-w-[180px]">
-                          {venda.cliente_nome}
+                          {venda.clientes?.nome || "-"}
                         </span>
                       </td>
                       <td className="py-4 px-4">
                         <span className="text-slate-600 truncate block max-w-[150px]">
-                          {venda.empreendimento_nome}
+                          {venda.empreendimentos?.nome || "-"}
                         </span>
                       </td>
                       <td className="py-4 px-4">
-                        <span className="text-slate-600">{venda.unidade}</span>
+                        <span className="text-slate-600">{venda.unidade || "-"}</span>
                       </td>
                       <td className="py-4 px-4">
-                        <span className="text-slate-600">{venda.forma_pagamento_display || "-"}</span>
+                        <span className="text-slate-600">{venda.forma_pagamento === 'AV' ? 'À Vista' : venda.forma_pagamento === 'FI' ? 'Financiado' : venda.forma_pagamento || "-"}</span>
                       </td>
                       <td className="py-4 px-4 text-right">
                         <span className="font-medium text-slate-700">
@@ -277,7 +264,7 @@ export default function Vendas() {
                       </td>
                       <td className="py-4 px-4 text-center">
                         <span className={`inline-flex px-3 py-1 rounded-full text-xs font-semibold ${getStatusStyle(venda.status)}`}>
-                          {venda.status_display}
+                          {venda.status === 'PE' ? 'Pendente' : venda.status === 'FA' ? 'Faturado' : venda.status}
                         </span>
                       </td>
                     </tr>
