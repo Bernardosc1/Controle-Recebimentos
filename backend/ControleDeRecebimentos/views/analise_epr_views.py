@@ -9,6 +9,10 @@ from django.http import HttpResponse
 from django.utils import timezone
 
 from ControleDeRecebimentos.models import Venda, AnaliseEPR
+from ControleDeRecebimentos.utils import (
+    criar_indice_por_nome_cliente,
+    encontrar_melhor_match,
+)
 
 
 class AnalisarEPRAPIView(APIView):
@@ -57,27 +61,22 @@ class AnalisarEPRAPIView(APIView):
                     status=status.HTTP_400_BAD_REQUEST,
                 )
 
-            # Coletar nomes únicos da planilha EPR
-            nomes_planilha = {}
+            # Buscar todas as vendas financiadas pendentes e criar índice normalizado
+            vendas_por_nome = criar_indice_por_nome_cliente(
+                Venda.objects.filter(
+                    forma_pagamento="FI",
+                    status="PE"
+                ).select_related("cliente", "empreendimento", "tabela_mensal")
+            )
+
+            # Processar cada linha da planilha EPR
             for idx, row in df.iterrows():
-                nome = str(row[nome_coluna]).strip() if pd.notna(row[nome_coluna]) else None
-                if nome and nome.lower() != "nan":
-                    nomes_planilha[nome.lower()] = (idx, row)
+                nome_cliente = str(row[nome_coluna]).strip() if pd.notna(row[nome_coluna]) else None
+                if not nome_cliente or nome_cliente.lower() == "nan":
+                    continue
 
-            # Buscar todas as vendas financiadas pendentes em UMA query
-            vendas_por_nome = {}
-            for venda in Venda.objects.filter(
-                forma_pagamento="FI",
-                status="PE"
-            ).select_related("cliente", "empreendimento", "tabela_mensal"):
-                vendas_por_nome[venda.cliente.nome.lower()] = venda
-
-            # Processar dados
-            for nome_lower, (idx, row) in nomes_planilha.items():
-                nome_cliente = str(row[nome_coluna]).strip()
-
-                # Buscar venda no dicionário (O(1))
-                venda = vendas_por_nome.get(nome_lower)
+                # Buscar venda com matching por similaridade (threshold 85%)
+                venda, score = encontrar_melhor_match(nome_cliente, vendas_por_nome)
 
                 if not venda:
                     continue

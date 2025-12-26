@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import api from "../../services/api";
 import { Button } from "../../components/ui/button";
 import {
@@ -15,6 +16,7 @@ import {
   Loader2,
   AlertCircle,
   Table,
+  Eye,
 } from "lucide-react";
 
 interface TabelaMensal {
@@ -24,6 +26,7 @@ interface TabelaMensal {
 }
 
 export default function TabelasMensais() {
+  const navigate = useNavigate();
   const [tabelas, setTabelas] = useState<TabelaMensal[]>([]);
   const [novoMes, setNovoMes] = useState("");
   const [loading, setLoading] = useState(true);
@@ -212,14 +215,24 @@ export default function TabelasMensais() {
                       </p>
                     </div>
                   </div>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => excluirTabela(tabela.id)}
-                    className="text-slate-400 hover:text-red-500 hover:bg-red-50 opacity-0 group-hover:opacity-100 transition-all rounded-lg"
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </Button>
+                  <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-all">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => navigate(`/tabelas-mensais/${tabela.id}`)}
+                      className="text-blue-500 hover:text-blue-700 hover:bg-blue-50 rounded-lg"
+                    >
+                      <Eye className="w-4 h-4" />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => excluirTabela(tabela.id)}
+                      className="text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-lg"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </Button>
+                  </div>
                 </div>
               ))}
             </div>

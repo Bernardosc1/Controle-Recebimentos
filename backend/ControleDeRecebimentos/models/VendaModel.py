@@ -12,6 +12,7 @@ class Venda(models.Model):
     class Status(models.TextChoices):
         PENDENTE = "PE", "Pendente"
         FATURADO = "FA", "Faturado"
+        CANCELADO = "CA", "Cancelado"
 
     # Campos obrigatórios
     tabela_mensal = models.ForeignKey(

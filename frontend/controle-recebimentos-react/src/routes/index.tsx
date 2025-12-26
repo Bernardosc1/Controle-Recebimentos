@@ -11,6 +11,7 @@ import Vendas from "../pages/Vendas";
 import Importar from "../pages/Importar";
 import AnaliseEPR from "../pages/AnaliseEPR";
 import AnaliseEPRDetalhes from "../pages/AnaliseEPRDetalhes";
+import TabelaMensalDetalhes from "../pages/TabelaMensalDetalhes";
 
 
 /**
@@ -50,6 +51,7 @@ function AppRoutes() {
           {/* Páginas do sistema */}
           <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/tabelas-mensais" element={<TabelasMensais />} />
+          <Route path="/tabelas-mensais/:id" element={<TabelaMensalDetalhes />} />
           <Route path="/vendas" element={<Vendas />} />
           <Route path="/importar" element={<Importar />} />
           <Route path="/analise-epr" element={<AnaliseEPR />} />

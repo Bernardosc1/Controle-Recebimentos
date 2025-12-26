@@ -40,6 +40,79 @@ class VendaAPIView(APIView):
             return Response(serializer.data, status=status.HTTP_201_CREATED)
 
 
+class VendaDetailAPIView(APIView):
+    """
+    GET/PATCH/DELETE /vendas/<id>/
+    Endpoint para operações em uma venda específica.
+    """
+
+    def get_object(self, pk):
+        try:
+            return Venda.objects.select_related(
+                "cliente", "empreendimento", "tabela_mensal"
+            ).get(pk=pk)
+        except Venda.DoesNotExist:
+            return None
+
+    def get(self, request, pk):
+        venda = self.get_object(pk)
+        if not venda:
+            return Response(
+                {"error": "Venda não encontrada"},
+                status=status.HTTP_404_NOT_FOUND
+            )
+        serializer = VendaSerializer(venda)
+        return Response(serializer.data)
+
+    def patch(self, request, pk):
+        """
+        Atualização parcial de uma venda.
+        Usado para edição inline na tabela.
+        """
+        venda = self.get_object(pk)
+        if not venda:
+            return Response(
+                {"error": "Venda não encontrada"},
+                status=status.HTTP_404_NOT_FOUND
+            )
+
+        # Campos permitidos para edição inline
+        campos_permitidos = [
+            "valor_venda",
+            "valor_comissao",
+            "forma_pagamento",
+            "status",
+        ]
+
+        # Filtrar apenas campos permitidos
+        dados = {k: v for k, v in request.data.items() if k in campos_permitidos}
+
+        if not dados:
+            return Response(
+                {"error": "Nenhum campo válido para atualização"},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        # Se status mudar para Faturado, registrar data
+        if dados.get("status") == "FA" and venda.status != "FA":
+            dados["data_faturamento"] = timezone.now().date()
+
+        serializer = VendaSerializer(venda, data=dados, partial=True)
+        if serializer.is_valid(raise_exception=True):
+            serializer.save()
+            return Response(serializer.data)
+
+    def delete(self, request, pk):
+        venda = self.get_object(pk)
+        if not venda:
+            return Response(
+                {"error": "Venda não encontrada"},
+                status=status.HTTP_404_NOT_FOUND
+            )
+        venda.delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
+
 class FaturarVendasAPIView(APIView):
     def post(self, request):
         ids = request.data.get("ids", [])
@@ -59,7 +132,7 @@ class FaturarVendasAPIView(APIView):
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
-        vendas.update(status="FA", data_faturamento=timezone.now())
+        vendas.update(status="FA", data_faturamento=timezone.now().date())
 
         return Response(
             {"message": f"{total} vendas faturadas com sucesso"},

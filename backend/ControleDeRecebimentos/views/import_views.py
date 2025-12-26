@@ -7,6 +7,10 @@ from rest_framework.parsers import MultiPartParser
 from django.utils import timezone
 
 from ControleDeRecebimentos.models import Cliente, Empreendimento, Venda, TabelaMensal
+from ControleDeRecebimentos.utils import (
+    criar_indice_por_nome_cliente,
+    encontrar_melhor_match,
+)
 
 
 class ImportAcompanhamentoAPIView(APIView):
@@ -278,19 +282,10 @@ class ImportControleGestoresAPIView(APIView):
                     status=status.HTTP_400_BAD_REQUEST,
                 )
 
-            # Coletar nomes únicos da planilha
-            nomes_planilha = set()
-            for _, row in df.iterrows():
-                nome = str(row[col_nome]).strip() if pd.notna(row[col_nome]) else None
-                if nome and nome.lower() != "nan":
-                    nomes_planilha.add(nome.lower())
-
-            # Buscar todas as vendas correspondentes em UMA query
-            vendas_por_nome = {}
-            for venda in Venda.objects.filter(
-                cliente__nome__iregex=r'^(' + '|'.join(nomes_planilha) + r')$'
-            ).select_related("cliente"):
-                vendas_por_nome[venda.cliente.nome.lower()] = venda
+            # Buscar todas as vendas em UMA query e criar índice normalizado
+            vendas_por_nome = criar_indice_por_nome_cliente(
+                Venda.objects.all().select_related("cliente")
+            )
 
             vendas_para_atualizar = []
             vendas_nao_encontradas = []
@@ -302,8 +297,8 @@ class ImportControleGestoresAPIView(APIView):
                 if not nome_cliente or nome_cliente.lower() == "nan":
                     continue
 
-                # Buscar venda no dicionário (O(1))
-                venda = vendas_por_nome.get(nome_cliente.lower())
+                # Buscar venda com matching por similaridade (threshold 85%)
+                venda, score = encontrar_melhor_match(nome_cliente, vendas_por_nome)
 
                 if not venda:
                     vendas_nao_encontradas.append(nome_cliente)
@@ -380,20 +375,13 @@ class ImportWebroPayAPIView(APIView):
                     status=status.HTTP_400_BAD_REQUEST,
                 )
 
-            # Coletar nomes únicos da planilha
-            nomes_planilha = set()
-            for _, row in df.iterrows():
-                nome = str(row[col_pagador]).strip() if pd.notna(row[col_pagador]) else None
-                if nome and nome.lower() != "nan":
-                    nomes_planilha.add(nome.lower())
-
-            # Buscar todas as vendas à vista pendentes em UMA query
-            vendas_por_nome = {}
-            for venda in Venda.objects.filter(
-                forma_pagamento="AV",
-                status="PE"
-            ).select_related("cliente"):
-                vendas_por_nome[venda.cliente.nome.lower()] = venda
+            # Buscar todas as vendas à vista pendentes e criar índice normalizado
+            vendas_por_nome = criar_indice_por_nome_cliente(
+                Venda.objects.filter(
+                    forma_pagamento="AV",
+                    status="PE"
+                ).select_related("cliente")
+            )
 
             vendas_para_atualizar = []
             vendas_nao_encontradas = []
@@ -406,8 +394,8 @@ class ImportWebroPayAPIView(APIView):
                 if not nome_cliente or nome_cliente.lower() == "nan":
                     continue
 
-                # Buscar venda no dicionário (O(1))
-                venda = vendas_por_nome.get(nome_cliente.lower())
+                # Buscar venda com matching por similaridade (threshold 85%)
+                venda, score = encontrar_melhor_match(nome_cliente, vendas_por_nome)
 
                 if not venda:
                     vendas_nao_encontradas.append(nome_cliente)
@@ -455,11 +443,9 @@ class ImportEPRAPIView(APIView):
             # EPR é .xls (formato antigo)
             df = pd.read_excel(file, engine="xlrd")
 
-            vendas_faturadas = 0
             vendas_nao_encontradas = []
 
             # Identificar coluna com nome do cliente (pode variar)
-            # Vamos tentar encontrar a coluna correta
             nome_coluna = None
             for col in df.columns:
                 if "nome" in str(col).lower() or "cliente" in str(col).lower():
@@ -468,6 +454,17 @@ class ImportEPRAPIView(APIView):
 
             if not nome_coluna:
                 nome_coluna = df.columns[0]  # Usa primeira coluna como fallback
+
+            # Buscar todas as vendas financiadas pendentes e criar índice normalizado
+            vendas_por_nome = criar_indice_por_nome_cliente(
+                Venda.objects.filter(
+                    forma_pagamento="FI",
+                    status="PE"
+                ).select_related("cliente")
+            )
+
+            vendas_para_atualizar = []
+            agora = timezone.now()
 
             for _, row in df.iterrows():
                 nome_cliente = (
@@ -478,12 +475,8 @@ class ImportEPRAPIView(APIView):
                 if not nome_cliente:
                     continue
 
-                # Buscar venda financiada pendente pelo nome do cliente
-                venda = Venda.objects.filter(
-                    cliente__nome__iexact=nome_cliente,
-                    forma_pagamento="FI",
-                    status="PE",
-                ).first()
+                # Buscar venda com matching por similaridade (threshold 85%)
+                venda, score = encontrar_melhor_match(nome_cliente, vendas_por_nome)
 
                 if not venda:
                     vendas_nao_encontradas.append(nome_cliente)
@@ -491,14 +484,20 @@ class ImportEPRAPIView(APIView):
 
                 # Marcar como faturado
                 venda.status = "FA"
-                venda.data_faturamento = timezone.now()
-                venda.save()
-                vendas_faturadas += 1
+                venda.data_faturamento = agora
+                vendas_para_atualizar.append(venda)
+
+            # Bulk update - MUITO mais rápido!
+            if vendas_para_atualizar:
+                Venda.objects.bulk_update(
+                    vendas_para_atualizar,
+                    ["status", "data_faturamento"]
+                )
 
             return Response(
                 {
                     "message": "Importação concluída",
-                    "vendas_faturadas": vendas_faturadas,
+                    "vendas_faturadas": len(vendas_para_atualizar),
                     "vendas_nao_encontradas": len(vendas_nao_encontradas),
                     "nao_encontradas": vendas_nao_encontradas[:10],
                 },
