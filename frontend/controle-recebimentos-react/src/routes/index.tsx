@@ -60,17 +60,4 @@ function AppRoutes() {
   );
 }
 
-/**
- * PlaceholderPage - Página temporária para rotas ainda não implementadas
- * Será substituída pelas páginas reais depois
- */
-function PlaceholderPage({ title }: { title: string }) {
-  return (
-    <div className="max-w-4xl">
-      <h1 className="text-3xl font-bold text-gray-800 mb-4">{title}</h1>
-      <p className="text-gray-600">Esta página será implementada em breve.</p>
-    </div>
-  );
-}
-
 export default AppRoutes;
